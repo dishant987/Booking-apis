@@ -9,4 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface LoadRepository extends JpaRepository<Load, UUID>, JpaSpecificationExecutor<Load> {
+    boolean existsByShipperId(String shipperId);
 }

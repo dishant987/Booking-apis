@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.booking.entity.Booking;
 import com.example.booking.entity.Load;
+import com.example.booking.model.UpdateBookingDTO;
 import com.example.booking.repository.BookingRepository;
 import com.example.booking.repository.LoadRepository;
 
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class BookingService {
 
     private final BookingRepository bookingRepository;
+    private final LoadRepository loadRepository;
 
     public Booking createBooking(Load load, Booking booking) {
         booking.setLoad(load);
@@ -48,12 +50,37 @@ public class BookingService {
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found with ID: " + id));
     }
 
-    public Booking updateBooking(UUID id, Booking updatedBooking) {
-        Booking existing = getBookingById(id);
-        existing.setTransporterId(updatedBooking.getTransporterId());
-        existing.setProposedRate(updatedBooking.getProposedRate());
-        existing.setComment(updatedBooking.getComment());
-        existing.setStatus(updatedBooking.getStatus());
+    public Booking updateBooking(UUID id, UpdateBookingDTO updatedBooking) {
+        Booking existing = bookingRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Booking with ID " + id + " not found."));
+
+        // Only update fields that are non-null and valid
+        if (updatedBooking.getTransporterId() != null) {
+            existing.setTransporterId(updatedBooking.getTransporterId());
+        }
+
+        if (updatedBooking.getProposedRate() != null) {
+            if (updatedBooking.getProposedRate() <= 0) {
+                throw new IllegalArgumentException("Proposed rate must be greater than 0.");
+            }
+            existing.setProposedRate(updatedBooking.getProposedRate());
+        }
+
+        if (updatedBooking.getComment() != null) {
+            existing.setComment(updatedBooking.getComment());
+        }
+
+        if (updatedBooking.getStatus() != null) {
+            existing.setStatus(updatedBooking.getStatus());
+        }
+
+        if (updatedBooking.getLoadId() != null) {
+            Load load = loadRepository.findById(updatedBooking.getLoadId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Load with ID " + updatedBooking.getLoadId() + " not found."));
+            existing.setLoad(load);
+        }
+
         return bookingRepository.save(existing);
     }
 
