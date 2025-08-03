@@ -88,7 +88,7 @@ public class Booking {
 1. **Clone the repository:**
 
    ```bash
-   git clone [repository-url]
+   git clone https://github.com/dishant987/Booking-apis.git
    ```
 
 2. **Configure PostgreSQL database in `application.properties`:**
