@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.booking.entity.Booking;
 import com.example.booking.entity.Load;
 import com.example.booking.entity.Booking.BookingStatus;
+import com.example.booking.model.BookingDTO;
 import com.example.booking.model.BookingResponseDTO;
 import com.example.booking.model.CreateBookingDTO;
 import com.example.booking.model.LoadResponseDTO;
@@ -46,10 +47,14 @@ public class BookingManagementController {
 
     @PostMapping
     public ResponseEntity<?> createBooking(
-            @RequestParam UUID loadId,
             @RequestBody CreateBookingDTO booking) {
-        if (loadId == null || booking == null) {
+        if (booking == null) {
             return ResponseEntity.badRequest().body("Load ID or booking data is missing.");
+        }
+
+        UUID loadId = booking.getLoadId();
+        if (loadId == null) {
+            return ResponseEntity.badRequest().body("Load ID is missing.");
         }
 
         Load load = loadRepository.findById(loadId).orElse(null);
@@ -78,13 +83,27 @@ public class BookingManagementController {
             @RequestParam(required = false) BookingStatus status,
             @PageableDefault(size = 10, sort = "requestedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<Booking> bookings = bookingService.getBookings(loadId, transporterId, status, pageable);
-        BookingResponseDTO response = new BookingResponseDTO(
-                bookings.getContent(),
-                bookings.getSize(),
-                bookings.getNumber() + 1,
-                bookings.getTotalElements(),
-                bookings.getTotalPages(),
-                bookings.isLast());
+        List<BookingDTO> bookingDTOs = bookings.getContent().stream().map(booking -> {
+            return BookingDTO.builder()
+                    .id(booking.getId())
+                    .comment(booking.getComment())
+                    .loadId(booking.getLoad() != null ? booking.getLoad().getId() : null)
+                    .loadComment(booking.getLoad() != null ? booking.getLoad().getComment() : null)
+                    .proposedRate(booking.getProposedRate())
+                    .requestedAt(booking.getRequestedAt())
+                    .transporterId(booking.getTransporterId())
+                    .status(booking.getStatus())
+                    .build();
+        }).toList();
+        BookingResponseDTO response = BookingResponseDTO.builder()
+                .content(bookingDTOs)
+                .pageSize(bookings.getSize())
+                .pageNumber(bookings.getNumber() + 1)
+                .totalCount(bookings.getTotalElements())
+                .totalPages(bookings.getTotalPages())
+                .last(bookings.isLast())
+                .build();
+
         return ResponseEntity.ok(response);
     }
 
